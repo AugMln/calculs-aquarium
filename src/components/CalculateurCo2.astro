@@ -1,0 +1,87 @@
+---
+// Calculateur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+---
+
+<form class="carte calculateur" id="calc-co2" novalidate>
+  <div class="grille">
+    <label>KH<input name="kh" type="number" inputmode="decimal" min="0" step="any" value="4" /></label>
+    <label>
+      Unité du KH
+      <select name="unite">
+        <option value="dH">°dKH (test aquario)</option>
+        <option value="f">°f (TAC)</option>
+      </select>
+    </label>
+    <label>pH mesuré<input name="ph" type="number" inputmode="decimal" min="4" max="9" step="0.05" value="6.8" /></label>
+    <label>CO2 visé (mg/L) <small>pour le pH à viser</small><input name="cible" type="number" inputmode="decimal" min="1" step="any" value="25" /></label>
+  </div>
+
+  <output class="resultats" for="calc-co2" aria-live="polite">
+    <div class="principal">
+      <span>CO2 dissous</span>
+      <strong data-r="co2">—</strong>
+    </div>
+    <dl>
+      <div><dt>Évaluation</dt><dd><span class="pastille" data-r="zone">—</span></dd></div>
+      <div><dt>pH à viser pour le CO2 visé</dt><dd data-r="phCible">—</dd></div>
+    </dl>
+    <p class="conseil" data-r="conseil"></p>
+  </output>
+</form>
+
+<style>
+  .conseil {
+    margin: 0.75rem 0 0;
+    color: var(--texte-doux);
+    font-size: 0.95rem;
+  }
+</style>
+
+<script>
+  import { co2DepuisKhPh, phPourCo2, zoneCo2 } from '../lib/co2';
+  import { convertir } from '../lib/durete';
+  import { ZONES, type ZoneCo2 } from '../data/co2';
+
+  const form = document.querySelector<HTMLFormElement>('#calc-co2')!;
+  const mgL = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+  const ph = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pastille = form.querySelector<HTMLElement>('[data-r="zone"]')!;
+
+  function nombre(nom: string): number | undefined {
+    const brut = (form.elements.namedItem(nom) as HTMLInputElement).value.replace(',', '.');
+    if (brut.trim() === '') return undefined;
+    const n = Number(brut);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+
+  function afficher(cle: string, texte: string) {
+    form.querySelector(`[data-r="${cle}"]`)!.textContent = texte;
+  }
+
+  function mettreAJour() {
+    const khSaisi = nombre('kh');
+    const unite = (form.elements.namedItem('unite') as HTMLSelectElement).value as 'dH' | 'f';
+    const kh = khSaisi === undefined ? undefined : convertir(khSaisi, unite, 'dH');
+    const pH = nombre('ph');
+    const cible = nombre('cible');
+
+    pastille.className = 'pastille';
+    if (kh === undefined || pH === undefined) {
+      for (const cle of ['co2', 'zone', 'phCible', 'conseil']) afficher(cle, '—');
+      afficher('conseil', '');
+      return;
+    }
+
+    const co2 = co2DepuisKhPh(kh, pH);
+    const zone: ZoneCo2 = zoneCo2(co2);
+    afficher('co2', `${mgL.format(co2)} mg/L`);
+    afficher('zone', ZONES[zone].libelle);
+    pastille.classList.add(`zone-${zone}`);
+    afficher('conseil', ZONES[zone].conseil);
+    afficher('phCible', cible ? ph.format(phPourCo2(kh, cible)) : '—');
+  }
+
+  form.addEventListener('input', mettreAJour);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

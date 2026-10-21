@@ -78,7 +78,7 @@ Checklist trimestrielle (< 1 h) : liens d'affiliation morts, alertes Search Cons
   - [x] Calculateur 2 — Chauffage (`src/lib/chauffage.ts` : modèle thermique ISO 6946 + évaporation de Carrier, 18 tests, recoupé avec la règle 1 W/L et Selectra ; consommation annuelle)
   - [x] Calculateur 3 — Dureté et mélange d'eau (`src/lib/durete.ts` : conversions dérivées des définitions + masses molaires IUPAC, mélange robinet/osmosée avec KH résultant, 14 tests)
   - [x] Calculateur 4 — Éclairage (`src/lib/eclairage.ts` : repères GreenAqua/Aquasabi en lm/L, évaluation d'une rampe, 12 tests)
-  - [ ] Calculateur 5 — CO2
+  - [x] Calculateur 5 — CO2 (`src/lib/co2.ts` : formule usuelle 3 × KH × 10^(7−pH), pH à viser, zones JBL/CO2Art/Practical Fishkeeping, tableau en couleurs, 14 tests)
   - [ ] Choisir et acheter le domaine (remplacer `SITE` dans `astro.config.mjs`), dépôt GitHub, Cloudflare Pages + Web Analytics
   - [ ] Lighthouse ≥ 95 sur chaque page
 - [ ] Phase 2 — Monétisation

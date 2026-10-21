@@ -1,0 +1,137 @@
+---
+import Base from '../layouts/Base.astro';
+import CalculateurCo2 from '../components/CalculateurCo2.astro';
+import { co2DepuisKhPh, zoneCo2 } from '../lib/co2';
+import { SOURCES_CO2, ZONES } from '../data/co2';
+
+const titre = 'Calcul du CO2 en aquarium à partir du KH et du pH (tableau et calculateur)';
+const description =
+  'Calculez le taux de CO2 dissous dans votre aquarium à partir du KH et du pH, trouvez le pH à viser pour votre ' +
+  'injection, et consultez le tableau pH/KH/CO2 en couleurs.';
+
+// Tableau pH/KH/CO2 calculé au build avec la même fonction que le calculateur.
+const khs = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+const phs = [6.0, 6.2, 6.4, 6.6, 6.8, 7.0, 7.2, 7.4, 7.6];
+const f0 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const f1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Calculateur de CO2 pour aquarium (KH et pH)',
+  description,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Tous (navigateur web)',
+  inLanguage: 'fr',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+---
+
+<Base titre={titre} description={description} jsonLd={jsonLd}>
+  <h1>Calcul du CO2 à partir du KH et du pH</h1>
+  <p class="chapo">
+    Dans une eau tamponnée par les carbonates, le pH dépend directement du CO2 dissous et du KH. En mesurant ces deux
+    valeurs avec des tests classiques, on peut estimer le taux de CO2 sans appareil spécialisé.
+  </p>
+
+  <CalculateurCo2 />
+
+  <div class="alerte" role="note">
+    <strong>Le CO2 peut tuer les poissons.</strong> Au-delà de 30 à 35 mg/L, la plupart des poissons respirent mal :
+    ils restent en surface et ventilent rapidement. Augmentez l'injection par petits paliers, sur plusieurs jours, et
+    observez les poissons en fin de période d'éclairage, quand le CO2 est au plus haut. Coupez l'injection la nuit et
+    gardez un bon brassage de la surface.
+  </div>
+
+  <h2>La formule</h2>
+  <p>
+    <strong>CO2 (mg/L) = 3 × KH (°dKH) × 10<sup>(7 − pH)</sup></strong>
+  </p>
+  <p>
+    Elle découle de l'équilibre entre le CO2 dissous et les bicarbonates mesurés par le test de KH. Deux conséquences
+    pratiques :
+  </p>
+  <ul>
+    <li>une baisse de pH de 1 point correspond à un CO2 multiplié par 10 ;</li>
+    <li>à KH égal, une baisse de pH de 0,3 point correspond à peu près à un CO2 doublé.</li>
+  </ul>
+  <p>
+    Si votre analyse d'eau donne le TAC en degrés français, sélectionnez « °f » : le calculateur le convertit
+    (1 °f = 0,56 °dKH). Voir aussi le <a href="/durete-eau-aquarium">convertisseur de dureté</a>.
+  </p>
+
+  <h2>Tableau pH / KH / CO2</h2>
+  <p>CO2 en mg/L. Les couleurs reprennent les zones du calculateur.</p>
+  <div class="defilement">
+    <table class="tableau-co2">
+      <thead>
+        <tr>
+          <th scope="col">KH \ pH</th>
+          {phs.map((p) => <th scope="col" class="nombre">{f1.format(p)}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          khs.map((kh) => (
+            <tr>
+              <th scope="row">{kh} °dKH</th>
+              {phs.map((p) => {
+                const co2 = co2DepuisKhPh(kh, p);
+                return <td class={`nombre zone-${zoneCo2(co2)}`}>{f0.format(co2)}</td>;
+              })}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <ul class="legende">
+    {
+      Object.entries(ZONES).map(([cle, z], i, toutes) => (
+        <li>
+          <span class={`pastille zone-${cle}`}>{z.libelle}</span>{' '}
+          {i < toutes.length - 1 ? `${z.min} à ${toutes[i + 1]![1].min} mg/L` : `${z.min} mg/L et plus`}
+        </li>
+      ))
+    }
+  </ul>
+
+  <h2>Quand le calcul est faux</h2>
+  <p>
+    La formule suppose que seul le CO2 fait baisser le pH. Elle surestime le CO2 dès qu'un autre acide est présent :
+  </p>
+  <ul>
+    <li>sol nutritif « actif » qui acidifie l'eau (type aquasoil) ;</li>
+    <li>tourbe, feuilles de catappa, bois ou racines qui libèrent des acides humiques ;</li>
+    <li>produits « pH moins » ou eau osmosée avec un KH presque nul (en dessous de 1 °dKH, le résultat n'a plus de sens).</li>
+  </ul>
+  <p>
+    Dans ces cas, mesurez plutôt l'effet du CO2 seul : relevez le pH d'un échantillon d'eau du bac laissé à l'air libre
+    une journée (CO2 dégazé), puis le pH du bac en fin d'éclairage. Dans les bacs plantés avec injection, la règle
+    courante est de viser une chute d'environ 1 point, à moduler selon le comportement des poissons.
+    Un testeur permanent (« drop checker ») rempli d'une solution de référence à 4 °dKH, et non d'eau du bac, est aussi
+    fiable : il vire au vert vers 30 mg/L.
+  </p>
+
+  <h2>Sources</h2>
+  <ul>
+    {SOURCES_CO2.map((s) => <li>{s}</li>)}
+  </ul>
+</Base>
+
+<style>
+  .tableau-co2 td,
+  .tableau-co2 th {
+    padding: 0.35rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  .legende {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+  }
+</style>

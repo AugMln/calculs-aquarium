@@ -8,6 +8,10 @@
   --bordure: #d5e1e6;
   --alerte-fond: #fff6e0;
   --alerte-bordure: #e0a526;
+  --zone-faible: #dbeafe;
+  --zone-optimal: #d1fae5;
+  --zone-limite: #fef3c7;
+  --zone-danger: #fee2e2;
   --rayon: 10px;
   --largeur: 46rem;
   color-scheme: light;
@@ -24,6 +28,10 @@
     --bordure: #2a3f48;
     --alerte-fond: #2e2612;
     --alerte-bordure: #b8871c;
+    --zone-faible: #1e3a5f;
+    --zone-optimal: #164e3b;
+    --zone-limite: #5c4410;
+    --zone-danger: #6b1d1d;
     color-scheme: dark;
   }
 }
@@ -254,6 +262,30 @@ th.nombre {
   border-left: 4px solid var(--alerte-bordure);
   background: var(--alerte-fond);
   border-radius: 6px;
+}
+
+/* Zones de CO2 (tableau et pastille de résultat) */
+.zone-faible {
+  background: var(--zone-faible);
+}
+
+.zone-optimal {
+  background: var(--zone-optimal);
+}
+
+.zone-limite {
+  background: var(--zone-limite);
+}
+
+.zone-danger {
+  background: var(--zone-danger);
+}
+
+.pastille {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
 footer.site {
