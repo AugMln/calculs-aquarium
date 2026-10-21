@@ -1,0 +1,231 @@
+---
+// Calculateur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+---
+
+<form class="carte calculateur" id="calc-volume" novalidate>
+  <fieldset>
+    <legend>Forme du bac</legend>
+    <label><input type="radio" name="forme" value="rectangulaire" checked /> Rectangulaire</label>
+    <label><input type="radio" name="forme" value="panoramique" /> Panoramique (vitre avant bombée)</label>
+    <label><input type="radio" name="forme" value="cylindrique" /> Cylindrique</label>
+  </fieldset>
+
+  <div class="grille">
+    <label>
+      <span data-libelle-longueur>Longueur extérieure</span> (cm)
+      <input name="longueurCm" type="number" inputmode="decimal" min="1" step="0.1" value="80" required />
+    </label>
+    <label data-champ="largeur">
+      <span data-libelle-largeur>Profondeur extérieure</span> (cm)
+      <input name="largeurCm" type="number" inputmode="decimal" min="1" step="0.1" value="35" />
+    </label>
+    <label>
+      Hauteur extérieure (cm)
+      <input name="hauteurCm" type="number" inputmode="decimal" min="1" step="0.1" value="40" required />
+    </label>
+    <label>
+      Épaisseur du verre (mm)
+      <input name="epaisseurVerreMm" type="number" inputmode="decimal" min="0" step="0.5" value="6" />
+    </label>
+    <label data-champ="fleche" hidden>
+      Bombé de la vitre avant (cm)
+      <input name="flecheCm" type="number" inputmode="decimal" min="0" step="0.1" value="8" />
+    </label>
+    <label>
+      Hauteur d'eau (cm) <small>vide = 2 cm sous le bord</small>
+      <input name="hauteurEauCm" type="number" inputmode="decimal" min="0" step="0.1" />
+    </label>
+    <label>
+      Épaisseur du sol (cm)
+      <input name="hauteurSolCm" type="number" inputmode="decimal" min="0" step="0.1" value="5" />
+    </label>
+    <label>
+      Volume du décor (L)
+      <input name="volumeDecorL" type="number" inputmode="decimal" min="0" step="0.1" value="0" />
+    </label>
+    <label>
+      Type d'eau
+      <select name="eau">
+        <option value="douce">Eau douce</option>
+        <option value="mer">Eau de mer</option>
+      </select>
+    </label>
+  </div>
+
+  <output class="resultats" for="calc-volume" aria-live="polite">
+    <div class="principal">
+      <span>Volume d'eau réel</span>
+      <strong data-r="volumeEauL">—</strong>
+    </div>
+    <dl>
+      <div><dt>Volume brut (rempli à ras bord)</dt><dd data-r="volumeBrutL">—</dd></div>
+      <div><dt>Volume du sol</dt><dd data-r="volumeSolL">—</dd></div>
+      <div><dt>Poids de l'eau</dt><dd data-r="eauKg">—</dd></div>
+      <div><dt>Poids du verre</dt><dd data-r="verreKg">—</dd></div>
+      <div><dt>Poids du sol</dt><dd data-r="solKg">—</dd></div>
+      <div class="total"><dt>Poids total estimé</dt><dd data-r="totalKg">—</dd></div>
+    </dl>
+  </output>
+</form>
+
+<style>
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+  }
+
+  legend {
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.9rem 1rem;
+  }
+
+  .grille label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.95rem;
+  }
+
+  .grille label[hidden] {
+    display: none;
+  }
+
+  small {
+    color: var(--texte-doux);
+  }
+
+  input,
+  select {
+    font: inherit;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+    background: var(--fond);
+    color: var(--texte);
+  }
+
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .resultats {
+    display: block;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--bordure);
+    padding-top: 1rem;
+  }
+
+  .principal {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .principal strong {
+    font-size: 2rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  dl {
+    margin: 0.75rem 0 0;
+  }
+
+  dl div {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px dashed var(--bordure);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total {
+    font-weight: 700;
+  }
+</style>
+
+<script>
+  import { calculerVolume, type Forme, type TypeEau } from '../lib/volume';
+
+  const form = document.querySelector<HTMLFormElement>('#calc-volume')!;
+  const litres = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+
+  function nombre(nom: string): number | undefined {
+    const brut = (form.elements.namedItem(nom) as HTMLInputElement).value.replace(',', '.');
+    if (brut.trim() === '') return undefined;
+    const n = Number(brut);
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  }
+
+  function afficher(cle: string, texte: string) {
+    form.querySelector(`[data-r="${cle}"]`)!.textContent = texte;
+  }
+
+  function mettreAJour() {
+    const forme = (form.elements.namedItem('forme') as RadioNodeList).value as Forme;
+    const cylindre = forme === 'cylindrique';
+    form.querySelector<HTMLElement>('[data-champ="largeur"]')!.hidden = cylindre;
+    form.querySelector<HTMLElement>('[data-champ="fleche"]')!.hidden = forme !== 'panoramique';
+    form.querySelector('[data-libelle-longueur]')!.textContent = cylindre ? 'Diamètre extérieur' : 'Longueur extérieure';
+    form.querySelector('[data-libelle-largeur]')!.textContent =
+      forme === 'panoramique' ? 'Profondeur sur les côtés' : 'Profondeur extérieure';
+
+    const longueurCm = nombre('longueurCm');
+    const largeurCm = cylindre ? 0 : nombre('largeurCm');
+    const hauteurCm = nombre('hauteurCm');
+    const epaisseurVerreMm = nombre('epaisseurVerreMm') ?? 0;
+    const valide = longueurCm && hauteurCm && (cylindre || largeurCm) && hauteurCm * 10 > epaisseurVerreMm;
+
+    if (!valide) {
+      for (const cle of ['volumeEauL', 'volumeBrutL', 'volumeSolL', 'eauKg', 'verreKg', 'solKg', 'totalKg']) afficher(cle, '—');
+      return;
+    }
+
+    const flecheCm = nombre('flecheCm');
+    const hauteurEauCm = nombre('hauteurEauCm');
+    const hauteurSolCm = nombre('hauteurSolCm');
+    const volumeDecorL = nombre('volumeDecorL');
+    const r = calculerVolume({
+      forme,
+      longueurCm,
+      largeurCm: largeurCm ?? 0,
+      hauteurCm,
+      epaisseurVerreMm,
+      eau: (form.elements.namedItem('eau') as HTMLSelectElement).value as TypeEau,
+      ...(flecheCm !== undefined && { flecheCm }),
+      ...(hauteurEauCm !== undefined && { hauteurEauCm }),
+      ...(hauteurSolCm !== undefined && { hauteurSolCm }),
+      ...(volumeDecorL !== undefined && { volumeDecorL }),
+    });
+
+    afficher('volumeEauL', `${litres.format(r.volumeEauL)} L`);
+    afficher('volumeBrutL', `${litres.format(r.volumeBrutL)} L`);
+    afficher('volumeSolL', `${litres.format(r.volumeSolL)} L`);
+    afficher('eauKg', `${litres.format(r.poids.eauKg)} kg`);
+    afficher('verreKg', `${litres.format(r.poids.verreKg)} kg`);
+    afficher('solKg', `${litres.format(r.poids.solKg)} kg`);
+    afficher('totalKg', `${litres.format(r.poids.totalKg)} kg`);
+  }
+
+  form.addEventListener('input', mettreAJour);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  titre: string;
+  description: string;
+  /** Données structurées schema.org, sérialisées en JSON-LD. */
+  jsonLd?: Record<string, unknown>;
+}
+
+const { titre, description, jsonLd } = Astro.props;
+const canonique = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titre}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonique} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content={titre} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonique} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <header class="site">
+      <div class="conteneur">
+        <a class="marque" href="/">Calculs Aquarium</a>
+        <nav aria-label="Calculateurs">
+          <a href="/volume-aquarium">Volume</a>
+        </nav>
+      </div>
+    </header>
+    <main class="conteneur">
+      <slot />
+    </main>
+    <footer class="site">
+      <div class="conteneur">
+        <a href="/mentions-legales">Mentions légales</a>
+        <span>Calculs indicatifs : vérifiez toujours avec vos propres mesures et tests.</span>
+      </div>
+    </footer>
+  </body>
+</html>

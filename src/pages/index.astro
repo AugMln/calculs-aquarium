@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro';
+
+const titre = 'Calculateurs pour aquarium : volume, chauffage, éclairage, CO2';
+const description =
+  'Calculateurs gratuits pour l\'aquariophilie : volume réel et poids du bac, puissance de chauffage, éclairage, ' +
+  'dureté de l\'eau et CO2. Formules expliquées et sources citées.';
+
+const calculateurs = [
+  { href: '/volume-aquarium', nom: 'Volume et poids', texte: 'Litres réels (verre, sol, décor déduits) et poids total du bac.', dispo: true },
+  { href: '#', nom: 'Puissance du chauffage', texte: 'Watts nécessaires selon le volume et la température de la pièce.', dispo: false },
+  { href: '#', nom: 'Dureté de l\'eau', texte: 'Conversions GH / KH / °f / ppm et mélange eau osmosée.', dispo: false },
+  { href: '#', nom: 'Éclairage', texte: 'Lumens nécessaires selon le niveau de plantation.', dispo: false },
+  { href: '#', nom: 'CO2', texte: 'Taux de CO2 à partir du KH et du pH.', dispo: false },
+];
+---
+
+<Base titre={titre} description={description}>
+  <h1>Calculateurs pour aquarium</h1>
+  <p class="chapo">
+    Des outils simples et précis pour bien dimensionner et entretenir votre aquarium. Chaque calcul est expliqué, et
+    chaque valeur de référence cite sa source.
+  </p>
+
+  <ul class="liste">
+    {
+      calculateurs.map((c) => (
+        <li class="carte">
+          <h2>{c.dispo ? <a href={c.href}>{c.nom}</a> : c.nom}</h2>
+          <p>{c.texte}</p>
+          {!c.dispo && <p class="bientot">Bientôt disponible</p>}
+        </li>
+      ))
+    }
+  </ul>
+</Base>
+
+<style>
+  .liste {
+    list-style: none;
+    padding: 0;
+  }
+
+  .liste h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.2rem;
+  }
+
+  .liste p {
+    margin: 0;
+  }
+
+  .bientot {
+    color: var(--texte-doux);
+    font-size: 0.9rem;
+    margin-top: 0.35rem !important;
+  }
+</style>

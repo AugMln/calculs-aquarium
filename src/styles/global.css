@@ -1,0 +1,155 @@
+:root {
+  --fond: #f7fafb;
+  --surface: #ffffff;
+  --texte: #1b2a33;
+  --texte-doux: #4f6370;
+  --accent: #0b7a8f;
+  --accent-fort: #075e6e;
+  --bordure: #d5e1e6;
+  --alerte-fond: #fff6e0;
+  --alerte-bordure: #e0a526;
+  --rayon: 10px;
+  --largeur: 46rem;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #0f1a1f;
+    --surface: #16252c;
+    --texte: #e3edf1;
+    --texte-doux: #a3b6bf;
+    --accent: #4cc3d9;
+    --accent-fort: #7dd6e6;
+    --bordure: #2a3f48;
+    --alerte-fond: #2e2612;
+    --alerte-bordure: #b8871c;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 1.0625rem/1.65 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: var(--accent-fort);
+}
+
+.conteneur {
+  max-width: var(--largeur);
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+header.site {
+  border-bottom: 1px solid var(--bordure);
+  background: var(--surface);
+}
+
+header.site .conteneur {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  align-items: center;
+  padding-block: 0.75rem;
+}
+
+header.site .marque {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--texte);
+  margin-right: auto;
+}
+
+header.site nav a {
+  margin-left: 1rem;
+  text-decoration: none;
+}
+
+main {
+  padding-block: 1.5rem 3rem;
+}
+
+h1 {
+  font-size: 1.8rem;
+  line-height: 1.25;
+  margin: 0.5rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin-top: 2.25rem;
+}
+
+.chapo {
+  color: var(--texte-doux);
+  font-size: 1.1rem;
+}
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 1.25rem;
+  margin-block: 1.5rem;
+}
+
+.alerte {
+  background: var(--alerte-fond);
+  border-left: 4px solid var(--alerte-bordure);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-block: 1.25rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--bordure);
+}
+
+th {
+  font-weight: 600;
+}
+
+td.nombre,
+th.nombre {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.defilement {
+  overflow-x: auto;
+}
+
+footer.site {
+  border-top: 1px solid var(--bordure);
+  color: var(--texte-doux);
+  font-size: 0.9rem;
+  padding-block: 1.5rem;
+}
+
+footer.site a {
+  margin-right: 1rem;
+}

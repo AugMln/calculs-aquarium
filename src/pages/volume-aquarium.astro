@@ -1,0 +1,153 @@
+---
+import Base from '../layouts/Base.astro';
+import CalculateurVolume from '../components/CalculateurVolume.astro';
+import { calculerVolume } from '../lib/volume';
+import { EAU_DE_MER, EAU_DOUCE, SUBSTRAT_SATURE, VERRE } from '../data/masses-volumiques';
+
+const titre = 'Calcul du volume d\'un aquarium (litres réels et poids)';
+const description =
+  'Calculez le volume brut et le volume d\'eau réel de votre aquarium (rectangulaire, panoramique, cylindrique), ' +
+  'en tenant compte du verre, du sol et du décor, et estimez son poids total.';
+
+// Tableau des tailles courantes, calculé au build avec la même fonction que le calculateur.
+// Hypothèses : sol de 5 cm, eau à 2 cm du bord, pas de décor.
+const tailles = [
+  { l: 40, p: 25, h: 25, e: 5 },
+  { l: 60, p: 30, h: 30, e: 6 },
+  { l: 60, p: 30, h: 36, e: 6 },
+  { l: 80, p: 35, h: 40, e: 6 },
+  { l: 100, p: 40, h: 50, e: 8 },
+  { l: 120, p: 40, h: 50, e: 8 },
+  { l: 150, p: 50, h: 60, e: 10 },
+].map((t) => ({
+  ...t,
+  ...calculerVolume({ forme: 'rectangulaire', longueurCm: t.l, largeurCm: t.p, hauteurCm: t.h, epaisseurVerreMm: t.e, hauteurSolCm: 5 }),
+  nominalL: (t.l * t.p * t.h) / 1000,
+}));
+
+const f = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Calculateur de volume d\'aquarium',
+  description,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Tous (navigateur web)',
+  inLanguage: 'fr',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+---
+
+<Base titre={titre} description={description} jsonLd={jsonLd}>
+  <h1>Calcul du volume d'un aquarium</h1>
+  <p class="chapo">
+    Le volume affiché par le vendeur n'est pas celui que vous remplissez : le verre, le sol et le décor prennent de la
+    place. Entrez les dimensions extérieures de votre bac pour obtenir le volume d'eau réel et le poids total.
+  </p>
+
+  <CalculateurVolume />
+
+  <div class="alerte" role="note">
+    <strong>Poids : vérifiez votre support.</strong> Un aquarium rempli pèse souvent plus de 1 kg par litre une fois le
+    verre et le sol comptés. Utilisez un meuble prévu pour ce poids, parfaitement de niveau, et pour les grands bacs
+    renseignez-vous sur la résistance de votre plancher (voir plus bas).
+  </div>
+
+  <h2>Volume brut ou volume réel : quelle différence ?</h2>
+  <p>
+    Le volume <strong>nominal</strong> d'un bac est souvent calculé avec les dimensions extérieures :
+    longueur × profondeur × hauteur ÷ 1 000. Un bac de 80 × 35 × 40 cm est ainsi vendu « 112 litres ». Mais la quantité
+    d'eau qu'il contient vraiment est plus faible :
+  </p>
+  <ul>
+    <li><strong>Le verre</strong> : chaque vitre retire son épaisseur. Avec du verre de 6 mm, on perd 1,2 cm en longueur et en profondeur.</li>
+    <li><strong>Le niveau d'eau</strong> : on ne remplit jamais à ras bord, il reste en général 2 à 3 cm sous le cadre ou le bord.</li>
+    <li><strong>Le sol</strong> : 5 cm de sable sur 80 × 35 cm occupent déjà 14 litres.</li>
+    <li><strong>Le décor</strong> : roches et racines déplacent leur propre volume d'eau.</li>
+  </ul>
+  <p>
+    Résultat : il manque couramment 20 à 30 % entre le volume annoncé et le volume réel, et davantage sur les petits
+    bacs (voir le tableau plus bas). C'est ce volume réel qu'il faut
+    utiliser pour doser un traitement, un conditionneur d'eau ou un engrais, et pour dimensionner le chauffage et la filtration.
+  </p>
+
+  <h2>Comment mesurer son aquarium</h2>
+  <ol>
+    <li>Mesurez la longueur, la profondeur et la hauteur <strong>à l'extérieur</strong> du verre, cadre exclu.</li>
+    <li>Mesurez l'épaisseur d'une vitre sur un bord (souvent 4 à 6 mm pour les petits bacs, 8 à 12 mm pour les grands).</li>
+    <li>Mesurez la hauteur d'eau depuis le fond intérieur, ou laissez le champ vide pour un remplissage à 2 cm du bord.</li>
+    <li>Mesurez l'épaisseur du sol à l'avant et à l'arrière, puis faites la moyenne.</li>
+    <li>
+      Pour le décor, plongez les pièces dans un seau gradué rempli d'eau : la montée du niveau donne leur volume.
+    </li>
+  </ol>
+  <p>
+    <strong>Bac panoramique</strong> : mesurez la profondeur sur les côtés, puis le « bombé », c'est-à-dire la distance
+    entre une règle posée d'un coin à l'autre de la vitre avant et le point le plus avancé de la courbe.
+    <strong>Bac cylindrique</strong> : mesurez le diamètre extérieur.
+  </p>
+
+  <h2>Les formules utilisées</h2>
+  <ul>
+    <li><strong>Rectangulaire</strong> : (L − 2e) × (P − 2e) × hauteur d'eau, où e est l'épaisseur du verre.</li>
+    <li><strong>Cylindrique</strong> : π × (D/2 − e)² × hauteur d'eau.</li>
+    <li>
+      <strong>Panoramique</strong> : rectangle intérieur + segment de cercle formé par la vitre bombée
+      (rayon r = c²/8f + f/2, où c est la corde et f le bombé).
+    </li>
+    <li>On retire ensuite le volume du sol (surface du fond × épaisseur) et celui du décor. 1 litre = 1 000 cm³.</li>
+  </ul>
+
+  <h2>Volume réel des tailles courantes</h2>
+  <p>Calculé avec un sol de 5 cm, l'eau à 2 cm du bord et sans décor.</p>
+  <div class="defilement">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Dimensions (cm)</th>
+          <th scope="col" class="nombre">Verre</th>
+          <th scope="col" class="nombre">Nominal</th>
+          <th scope="col" class="nombre">Eau réelle</th>
+          <th scope="col" class="nombre">Poids total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          tailles.map((t) => (
+            <tr>
+              <td>{t.l} × {t.p} × {t.h}</td>
+              <td class="nombre">{t.e} mm</td>
+              <td class="nombre">{f.format(t.nominalL)} L</td>
+              <td class="nombre">{f.format(t.volumeEauL)} L</td>
+              <td class="nombre">{f.format(t.poids.totalKg)} kg</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Par exemple, un bac de 60 × 30 × 30 cm est vendu 54 litres, mais contient environ {f.format(tailles[1]!.volumeEauL)} litres
+    d'eau une fois installé.
+  </p>
+
+  <h2>Quel poids pour mon plancher ?</h2>
+  <p>
+    En France, les planchers d'habitation sont dimensionnés pour une charge d'exploitation de 150 kg/m² répartie
+    (Eurocode 1, NF EN 1991-1-1, catégorie A). Un aquarium concentre son poids sur une petite surface : un bac de
+    100 × 40 cm d'environ {f.format(tailles[4]!.poids.totalKg)} kg, plus son meuble, représente plusieurs centaines de
+    kilos par mètre carré au sol. Pour les petits bacs, ce n'est pas un problème. Au-delà de 200 litres environ,
+    placez le bac contre un mur porteur, de préférence perpendiculairement aux solives, et pour un très grand bac
+    ou un plancher bois ancien, demandez l'avis d'un professionnel.
+  </p>
+
+  <h2>Sources des valeurs utilisées</h2>
+  <ul>
+    <li>{EAU_DOUCE.libelle} : {EAU_DOUCE.valeur} kg/L. {EAU_DOUCE.source}</li>
+    <li>{EAU_DE_MER.libelle} : {EAU_DE_MER.valeur} kg/L. {EAU_DE_MER.source}</li>
+    <li>{VERRE.libelle} : {VERRE.valeur} kg/L. {VERRE.source}</li>
+    <li>{SUBSTRAT_SATURE.libelle} : {SUBSTRAT_SATURE.valeur} kg/L. {SUBSTRAT_SATURE.source}</li>
+    <li>Charge des planchers : Eurocode 1 (NF EN 1991-1-1), charges d'exploitation des bâtiments, catégorie A (habitation).</li>
+  </ul>
+</Base>
