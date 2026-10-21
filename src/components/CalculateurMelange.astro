@@ -1,0 +1,105 @@
+---
+// Calculateur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+import { UNITES, type UniteDurete } from '../data/durete';
+
+const unites = (['dH', 'f', 'ppm'] as UniteDurete[]).map((cle) => [cle, UNITES[cle]] as const);
+---
+
+<form class="carte calculateur" id="calc-melange" novalidate>
+  <label class="pleine">
+    Unité utilisée
+    <select name="unite">
+      {unites.map(([cle, u]) => <option value={cle}>{u.symbole} — {u.nom}</option>)}
+    </select>
+  </label>
+
+  <div class="grille">
+    <label>GH du robinet<input name="ghRobinet" type="number" inputmode="decimal" min="0" step="any" value="15" /></label>
+    <label>GH de l'eau douce <small>osmosée ≈ 0</small><input name="ghDouce" type="number" inputmode="decimal" min="0" step="any" value="0" /></label>
+    <label>GH visé<input name="ghCible" type="number" inputmode="decimal" min="0" step="any" value="6" /></label>
+    <label>Volume à préparer (L)<input name="volumeL" type="number" inputmode="decimal" min="0" step="any" value="20" /></label>
+    <label>KH du robinet <small>facultatif</small><input name="khRobinet" type="number" inputmode="decimal" min="0" step="any" value="10" /></label>
+    <label>KH de l'eau douce<input name="khDouce" type="number" inputmode="decimal" min="0" step="any" value="0" /></label>
+  </div>
+
+  <output class="resultats" for="calc-melange" aria-live="polite">
+    <p class="erreur" data-r="erreur" hidden></p>
+    <div class="principal">
+      <span>Eau du robinet</span>
+      <strong data-r="litresRobinet">—</strong>
+    </div>
+    <dl>
+      <div><dt>Eau douce (osmosée, déminéralisée…)</dt><dd data-r="litresDouce">—</dd></div>
+      <div><dt>Proportion d'eau du robinet</dt><dd data-r="pourcentage">—</dd></div>
+      <div data-ligne="kh"><dt>KH obtenu</dt><dd data-r="kh">—</dd></div>
+    </dl>
+  </output>
+</form>
+
+<script>
+  import { calculerMelange, dureteMelange } from '../lib/durete';
+  import { UNITES, type UniteDurete } from '../data/durete';
+
+  const form = document.querySelector<HTMLFormElement>('#calc-melange')!;
+  const litres = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+  const pourcent = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 0 });
+  const durete = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+  const RESULTATS = ['litresRobinet', 'litresDouce', 'pourcentage', 'kh'];
+
+  function nombre(nom: string): number | undefined {
+    const brut = (form.elements.namedItem(nom) as HTMLInputElement).value.replace(',', '.');
+    if (brut.trim() === '') return undefined;
+    const n = Number(brut);
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  }
+
+  function afficher(cle: string, texte: string) {
+    form.querySelector(`[data-r="${cle}"]`)!.textContent = texte;
+  }
+
+  function erreur(message: string | undefined) {
+    const el = form.querySelector<HTMLElement>('[data-r="erreur"]')!;
+    el.hidden = !message;
+    el.textContent = message ?? '';
+    if (message) for (const cle of RESULTATS) afficher(cle, '—');
+  }
+
+  function mettreAJour() {
+    const symbole = UNITES[(form.elements.namedItem('unite') as HTMLSelectElement).value as UniteDurete].symbole;
+    const robinet = nombre('ghRobinet');
+    const douce = nombre('ghDouce') ?? 0;
+    const cible = nombre('ghCible');
+    const volumeTotalL = nombre('volumeL');
+
+    if (robinet === undefined || cible === undefined || volumeTotalL === undefined) {
+      erreur(undefined);
+      for (const cle of RESULTATS) afficher(cle, '—');
+      return;
+    }
+
+    const r = calculerMelange({ robinet, douce, cible, volumeTotalL });
+    if (!r.possible) {
+      erreur(
+        r.raison === 'cible-trop-haute'
+          ? `Impossible : le GH visé dépasse celui des deux eaux (${durete.format(Math.max(robinet, douce))} ${symbole} au maximum).`
+          : `Impossible : le GH visé est plus bas que celui des deux eaux (${durete.format(Math.min(robinet, douce))} ${symbole} au minimum).`,
+      );
+      return;
+    }
+
+    erreur(undefined);
+    afficher('litresRobinet', `${litres.format(r.litresRobinet)} L`);
+    afficher('litresDouce', `${litres.format(r.litresDouce)} L`);
+    afficher('pourcentage', pourcent.format(r.fractionRobinet));
+
+    const khRobinet = nombre('khRobinet');
+    form.querySelector<HTMLElement>('[data-ligne="kh"]')!.hidden = khRobinet === undefined;
+    if (khRobinet !== undefined) {
+      afficher('kh', `${durete.format(dureteMelange(khRobinet, nombre('khDouce') ?? 0, r.fractionRobinet))} ${symbole}`);
+    }
+  }
+
+  form.addEventListener('input', mettreAJour);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

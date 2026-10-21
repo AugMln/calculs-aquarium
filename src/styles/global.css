@@ -240,11 +240,20 @@ th.nombre {
 .calculateur dd {
   margin: 0;
   text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .calculateur .total {
   font-weight: 700;
+}
+
+.calculateur .erreur {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--alerte-bordure);
+  background: var(--alerte-fond);
+  border-radius: 6px;
 }
 
 footer.site {

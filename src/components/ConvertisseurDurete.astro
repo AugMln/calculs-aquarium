@@ -1,0 +1,57 @@
+---
+// Convertisseur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+import { UNITES, type UniteDurete } from '../data/durete';
+
+const unites = Object.entries(UNITES) as [UniteDurete, (typeof UNITES)[UniteDurete]][];
+---
+
+<form class="carte calculateur" id="conv-durete" novalidate>
+  <div class="grille">
+    <label>
+      Valeur
+      <input name="valeur" type="number" inputmode="decimal" min="0" step="any" value="15" />
+    </label>
+    <label>
+      Unité
+      <select name="unite">
+        {unites.map(([cle, u]) => <option value={cle} selected={cle === 'f'}>{u.symbole} — {u.nom}</option>)}
+      </select>
+    </label>
+  </div>
+
+  <output class="resultats" for="conv-durete" aria-live="polite">
+    <dl>
+      {
+        unites.map(([cle, u]) => (
+          <div>
+            <dt>{u.nom}</dt>
+            <dd data-r={cle}>—</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </output>
+</form>
+
+<script>
+  import { convertirTout } from '../lib/durete';
+  import { UNITES, type UniteDurete } from '../data/durete';
+
+  const form = document.querySelector<HTMLFormElement>('#conv-durete')!;
+  const format = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 4 });
+
+  function mettreAJour() {
+    const brut = (form.elements.namedItem('valeur') as HTMLInputElement).value.replace(',', '.');
+    const valeur = Number(brut);
+    const unite = (form.elements.namedItem('unite') as HTMLSelectElement).value as UniteDurete;
+    const valide = brut.trim() !== '' && Number.isFinite(valeur) && valeur >= 0;
+    const r = valide ? convertirTout(valeur, unite) : undefined;
+    for (const cle of Object.keys(UNITES) as UniteDurete[]) {
+      form.querySelector(`[data-r="${cle}"]`)!.textContent = r ? `${format.format(r[cle])} ${UNITES[cle].symbole}` : '—';
+    }
+  }
+
+  form.addEventListener('input', mettreAJour);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

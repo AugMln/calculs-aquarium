@@ -1,0 +1,126 @@
+---
+import Base from '../layouts/Base.astro';
+import ConvertisseurDurete from '../components/ConvertisseurDurete.astro';
+import CalculateurMelange from '../components/CalculateurMelange.astro';
+import { convertir } from '../lib/durete';
+import { SOURCES_DURETE, UNITES } from '../data/durete';
+
+const titre = 'Dureté de l\'eau en aquarium : convertir GH, KH, °f, ppm et doser l\'eau osmosée';
+const description =
+  'Convertisseur de dureté de l\'eau (°dGH, °dKH, degré français TH/TAC, ppm, mmol/L) et calcul du mélange ' +
+  'eau du robinet / eau osmosée pour atteindre le GH voulu dans votre aquarium.';
+
+// Table de correspondance calculée au build avec la même fonction que le convertisseur.
+const valeursF = [5, 10, 15, 20, 25, 30, 35, 40];
+const d1 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+const d0 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const d3 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Convertisseur de dureté de l\'eau et calculateur de mélange pour aquarium',
+  description,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Tous (navigateur web)',
+  inLanguage: 'fr',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+---
+
+<Base titre={titre} description={description} jsonLd={jsonLd}>
+  <h1>Dureté de l'eau : convertir GH, KH et °f</h1>
+  <p class="chapo">
+    Les tests d'aquariophilie donnent la dureté en degrés allemands (°dGH, °dKH), les analyses d'eau du robinet en
+    degrés français (TH, TAC), et les forums étrangers en ppm. Convertissez une valeur dans toutes les unités, puis
+    calculez combien d'eau osmosée ajouter pour atteindre la dureté voulue.
+  </p>
+
+  <h2>Convertisseur d'unités</h2>
+  <ConvertisseurDurete />
+
+  <h2>Mélange eau du robinet et eau osmosée</h2>
+  <p>
+    Pour adoucir une eau trop dure, on la coupe avec de l'eau osmosée, déminéralisée ou de pluie, qui ne contient
+    presque pas de minéraux. La dureté du mélange est proportionnelle aux volumes : 40 % d'eau à 15 °dGH et 60 %
+    d'eau osmosée donnent 6 °dGH.
+  </p>
+  <CalculateurMelange />
+
+  <div class="alerte" role="note">
+    <strong>Changez la dureté progressivement.</strong> Une variation brutale de GH ou de KH stresse les poissons.
+    Préparez l'eau de changement au bon mélange plutôt que de corriger tout le bac d'un coup, et vérifiez le résultat
+    avec un test avant de la verser. Ne mettez jamais de l'eau osmosée pure dans un aquarium : sans minéraux, le pH
+    devient instable.
+  </div>
+
+  <h2>GH, KH, TH, TAC : quelle différence ?</h2>
+  <ul>
+    <li>
+      <strong>GH (dureté générale)</strong> : quantité de calcium et de magnésium dissous. C'est elle qui compte pour
+      la santé des poissons et des crevettes (mues, os, osmorégulation).
+    </li>
+    <li>
+      <strong>KH (dureté carbonatée)</strong> : quantité de carbonates et bicarbonates. Le KH agit comme un tampon : il
+      stabilise le pH. Plus il est bas, plus le pH peut chuter rapidement, notamment avec un apport de CO2.
+    </li>
+    <li>
+      <strong>TH et TAC</strong> : ce sont les équivalents français, donnés en degrés français (°f). Le TH (titre
+      hydrotimétrique) correspond au GH et le TAC (titre alcalimétrique complet) au KH. Il suffit de les convertir :
+      1 °f = 0,56 °dH.
+    </li>
+  </ul>
+
+  <h2>Où trouver la dureté de mon eau du robinet ?</h2>
+  <p>
+    En France, les résultats du contrôle sanitaire de l'eau potable sont publics : cherchez « qualité de l'eau
+    potable » sur le site du ministère de la Santé, puis votre commune. La dureté y figure sous le nom « titre
+    hydrotimétrique » (TH) et l'alcalinité sous « titre alcalimétrique complet » (TAC), en °f. Une synthèse annuelle est
+    aussi jointe à une facture d'eau par an. Ces valeurs peuvent varier selon la saison et la ressource : un test en
+    gouttes reste la meilleure vérification.
+  </p>
+
+  <h2>Table de correspondance</h2>
+  <div class="defilement">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col" class="nombre">°f (TH/TAC)</th>
+          <th scope="col" class="nombre">°dH (GH/KH)</th>
+          <th scope="col" class="nombre">°e</th>
+          <th scope="col" class="nombre">ppm CaCO3</th>
+          <th scope="col" class="nombre">mmol/L</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          valeursF.map((v) => (
+            <tr>
+              <td class="nombre">{v} °f</td>
+              <td class="nombre">{d1.format(convertir(v, 'f', 'dH'))} °dH</td>
+              <td class="nombre">{d1.format(convertir(v, 'f', 'e'))} °e</td>
+              <td class="nombre">{d0.format(convertir(v, 'f', 'ppm'))}</td>
+              <td class="nombre">{d3.format(convertir(v, 'f', 'mmol'))}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Définition des unités</h2>
+  <ul>
+    {
+      Object.values(UNITES).map((u) => (
+        <li>
+          <strong>{u.symbole}</strong> ({u.nom}) : {u.definition}
+        </li>
+      ))
+    }
+  </ul>
+
+  <h2>Sources</h2>
+  <ul>
+    {SOURCES_DURETE.map((s) => <li>{s}</li>)}
+  </ul>
+</Base>
