@@ -75,7 +75,7 @@ Checklist trimestrielle (< 1 h) : liens d'affiliation morts, alertes Search Cons
 - [ ] Phase 1 — Développement
   - [x] Socle : Astro 7 + TypeScript 6 (astro check ne supporte pas TS 7) + Vitest 5 + sitemap ; gabarit, accueil, mentions légales (éditeur à compléter)
   - [x] Calculateur 1 — Volume et poids (`src/lib/volume.ts`, 14 tests, page guide + tableau des tailles courantes)
-  - [ ] Calculateur 2 — Chauffage
+  - [x] Calculateur 2 — Chauffage (`src/lib/chauffage.ts` : modèle thermique ISO 6946 + évaporation de Carrier, 18 tests, recoupé avec la règle 1 W/L et Selectra ; consommation annuelle)
   - [ ] Calculateur 3 — Dureté et mélange d'eau
   - [ ] Calculateur 4 — Éclairage
   - [ ] Calculateur 5 — CO2

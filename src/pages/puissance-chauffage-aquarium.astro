@@ -1,0 +1,170 @@
+---
+import Base from '../layouts/Base.astro';
+import CalculateurChauffage from '../components/CalculateurChauffage.astro';
+import { calculerChauffage, FACTEUR_SECURITE } from '../lib/chauffage';
+import { COEF_EVAPORATION, LAMBDA_VERRE, MAGNUS, RSI_DESCENDANT, RSI_HORIZONTAL, RSI_MONTANT } from '../data/thermique';
+
+const titre = 'Puissance de chauffage pour aquarium : calcul en watts et consommation';
+const description =
+  'Quelle puissance de chauffage pour votre aquarium ? Calcul des pertes de chaleur selon la taille du bac, la ' +
+  'température de la pièce et le couvercle, avec la consommation électrique annuelle.';
+
+// Tableau calculé au build avec la même fonction que le calculateur. Hypothèses : bac couvert, eau à 25 °C.
+const tailles = [
+  { l: 40, p: 25, H: 25, h: 23, e: 5, nominal: 25 },
+  { l: 60, p: 30, H: 30, h: 28, e: 6, nominal: 54 },
+  { l: 80, p: 35, H: 40, h: 38, e: 6, nominal: 112 },
+  { l: 100, p: 40, H: 50, h: 47, e: 8, nominal: 200 },
+  { l: 120, p: 40, H: 50, h: 47, e: 8, nominal: 240 },
+  { l: 150, p: 50, H: 60, h: 57, e: 10, nominal: 450 },
+].map((t) => {
+  const base = {
+    longueurCm: t.l,
+    largeurCm: t.p,
+    hauteurEauCm: t.h,
+    epaisseurVerreMm: t.e,
+    couvert: true,
+    temperatureEauC: 25,
+    temperaturePieceMoyC: 20,
+  };
+  return {
+    ...t,
+    tempere: calculerChauffage({ ...base, temperaturePieceMinC: 20 }),
+    froid: calculerChauffage({ ...base, temperaturePieceMinC: 16 }),
+    ouvert: calculerChauffage({ ...base, couvert: false, temperaturePieceMinC: 20 }),
+  };
+});
+
+const conseil = (c: { nombre: number; puissanceW: number }) => (c.nombre === 1 ? `${c.puissanceW} W` : `${c.nombre} × ${c.puissanceW} W`);
+const f = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const bac112 = tailles[2]!;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Calculateur de puissance de chauffage pour aquarium',
+  description,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Tous (navigateur web)',
+  inLanguage: 'fr',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+---
+
+<Base titre={titre} description={description} jsonLd={jsonLd}>
+  <h1>Quelle puissance de chauffage pour mon aquarium ?</h1>
+  <p class="chapo">
+    La règle « 1 watt par litre » ne marche que dans une pièce tempérée. Ce calculateur estime les pertes de chaleur
+    réelles de votre bac selon sa forme, la température de la pièce et la présence d'un couvercle, puis propose une
+    puissance standard du commerce et la consommation électrique à prévoir.
+  </p>
+
+  <CalculateurChauffage />
+
+  <div class="alerte" role="note">
+    <strong>Sécurité.</strong> Un chauffage trop puissant dont le thermostat reste bloqué peut surchauffer le bac en
+    quelques heures. Au-delà de 200 litres environ, préférez deux chauffages moyens à un seul gros : si l'un tombe
+    en panne, ouvert ou fermé, l'autre limite les dégâts. Débranchez toujours le chauffage avant de le sortir de l'eau.
+  </div>
+
+  <h2>Ce qui fait varier la puissance nécessaire</h2>
+  <ul>
+    <li>
+      <strong>L'écart de température</strong> entre l'eau et la pièce : c'est le facteur principal. Les pertes sont
+      proportionnelles à cet écart. Passer d'une pièce à 20 °C à une pièce à 16 °C presque double le besoin pour une eau
+      à 25 °C.
+    </li>
+    <li>
+      <strong>Le couvercle</strong> : un bac ouvert perd beaucoup de chaleur par évaporation. Dans le tableau ci-dessous,
+      un bac de 112 litres ouvert perd environ {f.format(bac112.ouvert.pertesMaxW)} W contre {f.format(bac112.tempere.pertesMaxW)} W
+      avec un couvercle.
+    </li>
+    <li>
+      <strong>La taille du bac</strong> : un petit aquarium a beaucoup de surface de verre par litre d'eau. Il lui faut
+      donc proportionnellement plus de watts par litre qu'un grand bac.
+    </li>
+    <li>
+      <strong>L'emplacement</strong> : près d'une fenêtre, d'une porte d'entrée ou sur un mur extérieur, retenez la
+      température la plus basse que la pièce peut atteindre la nuit en hiver.
+    </li>
+  </ul>
+
+  <h2>Puissance conseillée pour les tailles courantes</h2>
+  <p>Bac couvert (sauf dernière colonne), eau à 25 °C, consommation calculée pour une pièce à 20 °C en moyenne.</p>
+  <div class="defilement">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Bac</th>
+          <th scope="col" class="nombre">Pièce à 20 °C</th>
+          <th scope="col" class="nombre">Pièce à 16 °C</th>
+          <th scope="col" class="nombre">Ouvert, 20 °C</th>
+          <th scope="col" class="nombre">Conso./an</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          tailles.map((t) => (
+            <tr>
+              <td>{t.l} × {t.p} × {t.H} cm (~{t.nominal} L)</td>
+              <td class="nombre">{conseil(t.tempere.conseil)}</td>
+              <td class="nombre">{conseil(t.froid.conseil)}</td>
+              <td class="nombre">{conseil(t.ouvert.conseil)}</td>
+              <td class="nombre">{f.format(t.tempere.consommationKWhAn)} kWh</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Est-ce qu'un chauffage d'aquarium consomme beaucoup ?</h2>
+  <p>
+    Un chauffage ne fonctionne pas en permanence : son thermostat le coupe dès que l'eau atteint la consigne. Sa
+    consommation moyenne est égale aux pertes de chaleur du bac, pas à sa puissance nominale. Un chauffage de 100 W
+    sur un bac de 112 litres couvert, dans une pièce à 20 °C, consomme en moyenne environ
+    {f.format(bac112.tempere.pertesMoyW)} W, soit {f.format(bac112.tempere.consommationKWhAn)} kWh par an. Renseignez le
+    prix du kWh de votre contrat dans le calculateur pour obtenir le coût annuel. Le moyen le plus efficace pour
+    réduire la facture est de couvrir le bac.
+  </p>
+
+  <h2>Comment le calcul fonctionne</h2>
+  <p>Le calculateur additionne les pertes de chaleur de chaque face du bac :</p>
+  <ul>
+    <li>
+      <strong>Vitres et fond</strong> : coefficient de transmission U × surface × écart de température. U est calculé
+      à partir des résistances superficielles normalisées de l'air ({RSI_HORIZONTAL.valeur} m²·K/W pour les vitres,
+      {RSI_DESCENDANT.valeur} pour le fond) et de la conductivité du verre ({LAMBDA_VERRE.valeur} W/m·K).
+    </li>
+    <li>
+      <strong>Dessus</strong> : avec un couvercle, l'air emprisonné ajoute une résistance ({RSI_MONTANT.valeur} m²·K/W
+      de chaque côté). Sans couvercle, on ajoute la chaleur emportée par l'évaporation (équation de Carrier, air calme),
+      qui dépend de l'humidité de la pièce. Cette formule donne une estimation plutôt haute, ce qui va dans le sens de
+      la sécurité.
+    </li>
+    <li>
+      <strong>Puissance conseillée</strong> : pertes au plus froid × {FACTEUR_SECURITE}, arrondies à la puissance
+      standard supérieure (25, 50, 75, 100, 150, 200, 250, 300 W). La marge permet de remonter la température après un
+      changement d'eau et d'absorber un coup de froid.
+    </li>
+  </ul>
+  <p>
+    Recoupement : pour un bac de 112 litres couvert dans une pièce à 20 °C, le modèle conseille
+    {conseil(bac112.tempere.conseil)}, en accord avec la règle empirique d'environ 1 W par litre pour une pièce
+    autour de 20 °C.
+  </p>
+
+  <h2>Sources</h2>
+  <ul>
+    <li>{RSI_HORIZONTAL.source}.</li>
+    <li>{LAMBDA_VERRE.source}</li>
+    <li>{COEF_EVAPORATION.source}</li>
+    <li>Pression de vapeur saturante : {MAGNUS.source}</li>
+    <li>
+      Règle empirique de 1 W par litre pour une pièce autour de 20 °C : guide d'achat
+      <a href="https://www.truffaut.com/chauffage-aquarium.html" rel="nofollow">Truffaut</a>. Ordre de grandeur des
+      pertes (environ 35 W pour 120 L avec 4 °C d'écart) :
+      <a href="https://selectra.info/energie/actualites/marche/aquarium-consommation-electrique-cout" rel="nofollow">Selectra</a>.
+    </li>
+  </ul>
+</Base>

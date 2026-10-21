@@ -1,0 +1,138 @@
+---
+// Calculateur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+const tailles = [
+  { libelle: '40 × 25 × 25 cm (~25 L)', l: 40, p: 25, h: 23, e: 5 },
+  { libelle: '60 × 30 × 30 cm (~54 L)', l: 60, p: 30, h: 28, e: 6 },
+  { libelle: '80 × 35 × 40 cm (~112 L)', l: 80, p: 35, h: 38, e: 6 },
+  { libelle: '100 × 40 × 50 cm (~200 L)', l: 100, p: 40, h: 47, e: 8 },
+  { libelle: '120 × 40 × 50 cm (~240 L)', l: 120, p: 40, h: 47, e: 8 },
+  { libelle: '150 × 50 × 60 cm (~450 L)', l: 150, p: 50, h: 57, e: 10 },
+];
+---
+
+<form class="carte calculateur" id="calc-chauffage" novalidate>
+  <label class="pleine">
+    Taille courante <small>(remplit les dimensions)</small>
+    <select name="taille">
+      <option value="">— Dimensions personnalisées —</option>
+      {tailles.map((t) => <option value={`${t.l},${t.p},${t.h},${t.e}`} selected={t.l === 80}>{t.libelle}</option>)}
+    </select>
+  </label>
+
+  <div class="grille">
+    <label>Longueur (cm)<input name="longueurCm" type="number" inputmode="decimal" min="1" step="0.1" value="80" /></label>
+    <label>Profondeur (cm)<input name="largeurCm" type="number" inputmode="decimal" min="1" step="0.1" value="35" /></label>
+    <label>Hauteur d'eau (cm)<input name="hauteurEauCm" type="number" inputmode="decimal" min="1" step="0.1" value="38" /></label>
+    <label>Épaisseur du verre (mm)<input name="epaisseurVerreMm" type="number" inputmode="decimal" min="0" step="0.5" value="6" /></label>
+    <label>Température de l'eau (°C)<input name="temperatureEauC" type="number" inputmode="decimal" step="0.5" value="25" /></label>
+    <label>Pièce, au plus froid (°C) <small>nuit d'hiver</small><input name="temperaturePieceMinC" type="number" inputmode="decimal" step="0.5" value="18" /></label>
+    <label>Pièce, en moyenne (°C)<input name="temperaturePieceMoyC" type="number" inputmode="decimal" step="0.5" value="20" /></label>
+    <label>
+      Dessus du bac
+      <select name="couvert">
+        <option value="oui">Couvercle ou galerie</option>
+        <option value="non">Ouvert</option>
+      </select>
+    </label>
+    <label data-champ="humidite" hidden>Humidité de la pièce (%)<input name="humiditePct" type="number" inputmode="decimal" min="0" max="100" step="1" value="50" /></label>
+    <label>Prix du kWh (€) <small>facultatif</small><input name="prixKWh" type="number" inputmode="decimal" min="0" step="0.001" placeholder="ex. 0,20" /></label>
+  </div>
+
+  <output class="resultats" for="calc-chauffage" aria-live="polite">
+    <div class="principal">
+      <span>Chauffage conseillé</span>
+      <strong data-r="conseil">—</strong>
+    </div>
+    <dl>
+      <div><dt>Pertes au plus froid</dt><dd data-r="pertesMaxW">—</dd></div>
+      <div><dt>Puissance visée (pertes × 2)</dt><dd data-r="puissanceCibleW">—</dd></div>
+      <div><dt>Consommation moyenne</dt><dd data-r="pertesMoyW">—</dd></div>
+      <div><dt>Consommation par an</dt><dd data-r="consommationKWhAn">—</dd></div>
+      <div data-ligne="cout" hidden><dt>Coût par an</dt><dd data-r="cout">—</dd></div>
+    </dl>
+  </output>
+</form>
+
+
+<script>
+  import { calculerChauffage } from '../lib/chauffage';
+
+  const form = document.querySelector<HTMLFormElement>('#calc-chauffage')!;
+  const entier = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+  const euros = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const DIMENSIONS = ['longueurCm', 'largeurCm', 'hauteurEauCm', 'epaisseurVerreMm'];
+
+  function champ<T extends Element = HTMLInputElement>(nom: string): T {
+    return form.elements.namedItem(nom) as unknown as T;
+  }
+
+  function nombre(nom: string): number | undefined {
+    const brut = champ(nom).value.replace(',', '.');
+    if (brut.trim() === '') return undefined;
+    const n = Number(brut);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  function afficher(cle: string, texte: string) {
+    form.querySelector(`[data-r="${cle}"]`)!.textContent = texte;
+  }
+
+  function appliquerTaille() {
+    const valeur = champ<HTMLSelectElement>('taille').value;
+    if (!valeur) return;
+    valeur.split(',').forEach((v, i) => (champ(DIMENSIONS[i]!).value = v));
+  }
+
+  function mettreAJour() {
+    const couvert = champ<HTMLSelectElement>('couvert').value === 'oui';
+    form.querySelector<HTMLElement>('[data-champ="humidite"]')!.hidden = couvert;
+
+    const longueurCm = nombre('longueurCm');
+    const largeurCm = nombre('largeurCm');
+    const hauteurEauCm = nombre('hauteurEauCm');
+    const temperatureEauC = nombre('temperatureEauC');
+    const temperaturePieceMinC = nombre('temperaturePieceMinC');
+    const temperaturePieceMoyC = nombre('temperaturePieceMoyC') ?? temperaturePieceMinC;
+    const humiditePct = nombre('humiditePct');
+
+    if (
+      !longueurCm || !largeurCm || !hauteurEauCm || longueurCm < 0 || largeurCm < 0 || hauteurEauCm < 0 ||
+      temperatureEauC === undefined || temperaturePieceMinC === undefined || temperaturePieceMoyC === undefined
+    ) {
+      for (const cle of ['conseil', 'pertesMaxW', 'puissanceCibleW', 'pertesMoyW', 'consommationKWhAn', 'cout']) afficher(cle, '—');
+      return;
+    }
+
+    const r = calculerChauffage({
+      longueurCm,
+      largeurCm,
+      hauteurEauCm,
+      epaisseurVerreMm: Math.max(0, nombre('epaisseurVerreMm') ?? 0),
+      couvert,
+      temperatureEauC,
+      temperaturePieceMinC,
+      temperaturePieceMoyC,
+      ...(humiditePct !== undefined && { humiditePct }),
+    });
+
+    const { nombre: n, puissanceW } = r.conseil;
+    afficher('conseil', n === 0 ? 'Aucun' : n === 1 ? `${puissanceW} W` : `${n} × ${puissanceW} W`);
+    afficher('pertesMaxW', `${entier.format(r.pertesMaxW)} W`);
+    afficher('puissanceCibleW', `${entier.format(r.puissanceCibleW)} W`);
+    afficher('pertesMoyW', `${entier.format(r.pertesMoyW)} W en continu`);
+    afficher('consommationKWhAn', `${entier.format(r.consommationKWhAn)} kWh`);
+
+    const prix = nombre('prixKWh');
+    form.querySelector<HTMLElement>('[data-ligne="cout"]')!.hidden = !prix;
+    if (prix) afficher('cout', euros.format(r.consommationKWhAn * prix));
+  }
+
+  form.addEventListener('input', (e) => {
+    const nom = (e.target as HTMLInputElement).name;
+    if (nom === 'taille') appliquerTaille();
+    else if (DIMENSIONS.includes(nom)) champ<HTMLSelectElement>('taille').value = '';
+    mettreAJour();
+  });
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

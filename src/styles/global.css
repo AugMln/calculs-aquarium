@@ -143,6 +143,110 @@ th.nombre {
   overflow-x: auto;
 }
 
+/* Calculateurs (formulaires + résultats) */
+.calculateur fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
+.calculateur legend {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.calculateur .pleine {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.calculateur .grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.9rem 0.75rem;
+  align-items: end;
+}
+
+.calculateur .grille label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.calculateur [hidden] {
+  display: none !important;
+}
+
+.calculateur small {
+  color: var(--texte-doux);
+}
+
+.calculateur input,
+.calculateur select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  background: var(--fond);
+  color: var(--texte);
+}
+
+.calculateur input:focus-visible,
+.calculateur select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.calculateur .resultats {
+  display: block;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--bordure);
+  padding-top: 1rem;
+}
+
+.calculateur .principal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.calculateur .principal strong {
+  font-size: 2rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.calculateur dl {
+  margin: 0.75rem 0 0;
+}
+
+.calculateur dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--bordure);
+}
+
+.calculateur dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.calculateur .total {
+  font-weight: 700;
+}
+
 footer.site {
   border-top: 1px solid var(--bordure);
   color: var(--texte-doux);
