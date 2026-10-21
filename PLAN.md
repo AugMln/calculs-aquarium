@@ -80,6 +80,7 @@ Checklist trimestrielle (< 1 h) : liens d'affiliation morts, alertes Search Cons
   - [x] Calculateur 4 — Éclairage (`src/lib/eclairage.ts` : repères GreenAqua/Aquasabi en lm/L, évaluation d'une rampe, 12 tests)
   - [x] Calculateur 5 — CO2 (`src/lib/co2.ts` : formule usuelle 3 × KH × 10^(7−pH), pH à viser, zones JBL/CO2Art/Practical Fishkeeping, tableau en couleurs, 14 tests)
   - [ ] Choisir et acheter le domaine (remplacer `SITE` dans `astro.config.mjs`), dépôt GitHub, Cloudflare Pages + Web Analytics
-  - [ ] Lighthouse ≥ 95 sur chaque page
+  - [x] Lighthouse ≥ 95 sur chaque page — 21/10/2026, mobile, build de production : 100/100/100/100 sur les 7 pages
+    (attention : auditer `npm run preview`, pas `npm run dev`, qui charge la barre d'outils Astro et fausse les scores)
 - [ ] Phase 2 — Monétisation
 - [ ] Phase 3 — Lancement
