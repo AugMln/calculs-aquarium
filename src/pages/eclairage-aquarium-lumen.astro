@@ -1,0 +1,135 @@
+---
+import Base from '../layouts/Base.astro';
+import CalculateurEclairage from '../components/CalculateurEclairage.astro';
+import { evaluerEclairage, lumensNecessaires } from '../lib/eclairage';
+import { NIVEAUX, PHOTOPERIODE_H, SOURCES_ECLAIRAGE } from '../data/eclairage';
+
+const titre = 'Éclairage d\'aquarium : combien de lumens par litre ? (calculateur)';
+const description =
+  'Calculez les lumens nécessaires pour votre aquarium selon le volume et le type de plantes, vérifiez si votre ' +
+  'rampe LED suffit, et sachez quand ajouter du CO2.';
+
+const volumes = [25, 54, 100, 200, 300, 450];
+const f = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const mille = evaluerEclairage(1000, 100);
+const bac200 = lumensNecessaires(200, 'moyen');
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Calculateur d\'éclairage pour aquarium (lumens par litre)',
+  description,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Tous (navigateur web)',
+  inLanguage: 'fr',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+---
+
+<Base titre={titre} description={description} jsonLd={jsonLd}>
+  <h1>Combien de lumens pour mon aquarium ?</h1>
+  <p class="chapo">
+    Avec les rampes LED, les anciennes règles en watts par litre ne veulent plus rien dire : une LED moderne éclaire
+    bien plus qu'un tube fluorescent de même puissance. Le bon repère est le flux lumineux en lumens, indiqué sur
+    l'emballage, rapporté au volume d'eau.
+  </p>
+
+  <CalculateurEclairage />
+
+  <div class="alerte" role="note">
+    <strong>Plus de lumière n'est pas toujours mieux.</strong> Un éclairage fort sans CO2 ni engrais en quantité
+    suffisante déséquilibre le bac et favorise les algues. Augmentez la lumière seulement si les plantes suivent, et
+    ne dépassez pas {PHOTOPERIODE_H.max} heures par jour.
+  </div>
+
+  <h2>Les trois niveaux d'éclairage</h2>
+  <div class="defilement">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Niveau</th>
+          <th scope="col">Pour quels bacs</th>
+          <th scope="col" class="nombre">lm/L</th>
+          <th scope="col">CO2</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          Object.values(NIVEAUX).map((n) => (
+            <tr>
+              <td>{n.libelle}</td>
+              <td>{n.plantes}</td>
+              <td class="nombre">{n.min} – {n.max}</td>
+              <td>{n.co2}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Lumens conseillés selon le volume</h2>
+  <p>Valeurs repères ({NIVEAUX.faible.repere}, {NIVEAUX.moyen.repere} et {NIVEAUX.fort.repere} lm/L), à calculer sur le volume d'eau réel.</p>
+  <div class="defilement">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Volume</th>
+          <th scope="col" class="nombre">Faible</th>
+          <th scope="col" class="nombre">Moyen</th>
+          <th scope="col" class="nombre">Fort</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          volumes.map((v) => (
+            <tr>
+              <td>{v} L</td>
+              <td class="nombre">{f.format(lumensNecessaires(v, 'faible').repere)} lm</td>
+              <td class="nombre">{f.format(lumensNecessaires(v, 'moyen').repere)} lm</td>
+              <td class="nombre">{f.format(lumensNecessaires(v, 'fort').repere)} lm</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Par exemple, un bac planté de 200 litres demande entre {f.format(bac200.min)} et {f.format(bac200.max)} lumens.
+  </p>
+
+  <h2>Est-ce que 1000 lumens éclairent bien ?</h2>
+  <p>
+    Tout dépend du volume. 1000 lumens sur un bac de 25 litres donnent 40 lm/L, un éclairage fort. Sur un bac de
+    100 litres, cela ne fait plus que {f.format(mille.lumensParLitre)} lm/L : assez pour des plantes faciles, trop peu
+    pour un aquarium planté classique. Entrez le flux de votre rampe dans le calculateur pour connaître son niveau
+    sur votre bac.
+  </p>
+
+  <h2>Les limites du calcul en lumens par litre</h2>
+  <ul>
+    <li>
+      <strong>La profondeur compte</strong> : la lumière s'atténue en traversant l'eau. Plus le bac est haut, plus il
+      faut viser le haut de la fourchette pour que les plantes du fond reçoivent assez de lumière.
+    </li>
+    <li>
+      <strong>Le spectre compte aussi</strong> : les lumens mesurent la lumière perçue par l'œil humain, pas celle
+      utilisée par les plantes. Deux rampes au même flux ne donnent pas forcément la même croissance. Pour les bacs
+      exigeants, les fabricants donnent parfois une valeur PAR (µmol/m²/s), plus pertinente.
+    </li>
+    <li>
+      <strong>Les rampes réglables</strong> : si votre rampe a un variateur, le flux indiqué correspond à 100 %.
+    </li>
+  </ul>
+
+  <h2>Durée d'éclairage</h2>
+  <p>
+    Comptez {PHOTOPERIODE_H.min} à {PHOTOPERIODE_H.max} heures par jour, toujours aux mêmes heures grâce à un
+    programmateur. Dans un bac qui démarre, commencez par le bas de la fourchette et augmentez progressivement.
+  </p>
+
+  <h2>Sources</h2>
+  <ul>
+    {SOURCES_ECLAIRAGE.map((s) => <li>{s}</li>)}
+  </ul>
+</Base>

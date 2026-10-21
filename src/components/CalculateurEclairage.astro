@@ -1,0 +1,94 @@
+---
+// Calculateur interactif : le HTML est statique, le script (îlot) recalcule à chaque saisie.
+import { NIVEAUX, type NiveauEclairage } from '../data/eclairage';
+
+const niveaux = Object.entries(NIVEAUX) as [NiveauEclairage, (typeof NIVEAUX)[NiveauEclairage]][];
+---
+
+<form class="carte calculateur" id="calc-eclairage" novalidate>
+  <div class="grille">
+    <label>
+      Volume d'eau (L) <small><a href="/volume-aquarium">calculer</a></small>
+      <input name="volumeL" type="number" inputmode="decimal" min="0" step="any" value="100" />
+    </label>
+    <label>
+      Type de bac
+      <select name="niveau">
+        {niveaux.map(([cle, n]) => <option value={cle} selected={cle === 'moyen'}>{n.court}</option>)}
+      </select>
+    </label>
+    <label>
+      Ma rampe (lumens) <small>facultatif, voir l'emballage</small>
+      <input name="lumensRampe" type="number" inputmode="decimal" min="0" step="any" placeholder="ex. 1400" />
+    </label>
+  </div>
+
+  <output class="resultats" for="calc-eclairage" aria-live="polite">
+    <div class="principal">
+      <span>Lumens conseillés</span>
+      <strong data-r="fourchette">—</strong>
+    </div>
+    <dl>
+      <div><dt>Repère</dt><dd data-r="repere">—</dd></div>
+      <div><dt>Injection de CO2</dt><dd data-r="co2">—</dd></div>
+      <div><dt>Durée d'éclairage</dt><dd data-r="photoperiode">—</dd></div>
+      <div data-ligne="rampe" hidden><dt>Votre rampe</dt><dd data-r="evaluation">—</dd></div>
+      <div data-ligne="rampe" hidden><dt>Rampes pour atteindre le repère</dt><dd data-r="rampes">—</dd></div>
+    </dl>
+  </output>
+</form>
+
+<script>
+  import { evaluerEclairage, lumensNecessaires, nombreRampes, type Evaluation } from '../lib/eclairage';
+  import { NIVEAUX, PHOTOPERIODE_H, type NiveauEclairage } from '../data/eclairage';
+
+  const form = document.querySelector<HTMLFormElement>('#calc-eclairage')!;
+  const entier = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+  const LIBELLES: Record<Evaluation, string> = {
+    insuffisant: 'insuffisant pour des plantes',
+    faible: 'éclairage faible',
+    moyen: 'éclairage moyen',
+    fort: 'éclairage fort',
+    'tres-fort': 'très fort : attention aux algues',
+  };
+
+  function nombre(nom: string): number | undefined {
+    const brut = (form.elements.namedItem(nom) as HTMLInputElement).value.replace(',', '.');
+    if (brut.trim() === '') return undefined;
+    const n = Number(brut);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+
+  function afficher(cle: string, texte: string) {
+    form.querySelector(`[data-r="${cle}"]`)!.textContent = texte;
+  }
+
+  function mettreAJour() {
+    const volumeL = nombre('volumeL');
+    const niveau = (form.elements.namedItem('niveau') as HTMLSelectElement).value as NiveauEclairage;
+    const lumensRampe = nombre('lumensRampe');
+    for (const ligne of form.querySelectorAll<HTMLElement>('[data-ligne="rampe"]')) ligne.hidden = !(lumensRampe && volumeL);
+
+    if (!volumeL) {
+      for (const cle of ['fourchette', 'repere', 'co2', 'photoperiode']) afficher(cle, '—');
+      return;
+    }
+
+    const besoin = lumensNecessaires(volumeL, niveau);
+    afficher('fourchette', `${entier.format(besoin.min)} – ${entier.format(besoin.max)} lm`);
+    afficher('repere', `${entier.format(besoin.repere)} lm (${NIVEAUX[niveau].repere} lm/L)`);
+    afficher('co2', NIVEAUX[niveau].co2);
+    afficher('photoperiode', `${PHOTOPERIODE_H.min} à ${PHOTOPERIODE_H.max} h par jour`);
+
+    if (lumensRampe) {
+      const e = evaluerEclairage(lumensRampe, volumeL);
+      afficher('evaluation', `${entier.format(e.lumensParLitre)} lm/L, ${LIBELLES[e.evaluation]}`);
+      const n = nombreRampes(besoin.repere, lumensRampe);
+      afficher('rampes', `${n} rampe${n > 1 ? 's' : ''}`);
+    }
+  }
+
+  form.addEventListener('input', mettreAJour);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  mettreAJour();
+</script>

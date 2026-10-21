@@ -77,7 +77,7 @@ Checklist trimestrielle (< 1 h) : liens d'affiliation morts, alertes Search Cons
   - [x] Calculateur 1 — Volume et poids (`src/lib/volume.ts`, 14 tests, page guide + tableau des tailles courantes)
   - [x] Calculateur 2 — Chauffage (`src/lib/chauffage.ts` : modèle thermique ISO 6946 + évaporation de Carrier, 18 tests, recoupé avec la règle 1 W/L et Selectra ; consommation annuelle)
   - [x] Calculateur 3 — Dureté et mélange d'eau (`src/lib/durete.ts` : conversions dérivées des définitions + masses molaires IUPAC, mélange robinet/osmosée avec KH résultant, 14 tests)
-  - [ ] Calculateur 4 — Éclairage
+  - [x] Calculateur 4 — Éclairage (`src/lib/eclairage.ts` : repères GreenAqua/Aquasabi en lm/L, évaluation d'une rampe, 12 tests)
   - [ ] Calculateur 5 — CO2
   - [ ] Choisir et acheter le domaine (remplacer `SITE` dans `astro.config.mjs`), dépôt GitHub, Cloudflare Pages + Web Analytics
   - [ ] Lighthouse ≥ 95 sur chaque page
